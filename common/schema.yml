@@ -1,0 +1,112 @@
+openapi: '3.0.2'
+info:
+  title: Ranking API
+  description: API for binary ranking app
+  version: '0.0.1'
+
+servers:
+  - url: http://127.0.0.1
+    description: Local test server
+
+paths:
+  /rankings:
+    get:
+      summary: Return list of available rankings
+      responses:
+        '200': # status code
+          description: Json array of available rankings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Ranking name
+                    id: # Id rankingu
+                      type: integer
+                      description: Ranking id
+                    expiring: # UNIX Epoch time
+                      type: integer
+                      description: Unix timestamp of expiry time
+                      
+                  example: 
+                    name: Superheroes ranking
+                    id: ZGVhZGJlZWYK
+                    expiring: 1699899952
+        '403':
+          description: Client is not authorized to view rankings list
+
+  /user/login:
+    get:
+      summary: Logs user into system
+      parameters:
+        - name: userToken
+          in: query
+          description: Token used to login user
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful login
+        '400':
+          description: Invalid token supplied
+
+  /rank/{rankingId}:
+    get:
+      summary: Return a choice form for rankingId
+      parameters:
+        - name: rankingId
+          in: path
+          required: true
+          description: Id of selected ranking
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Get choice for user
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ABranking'
+                  - $ref: '#/components/schemas/CriterionRanking'
+        '404':
+          description: There are no more choices to be made
+
+
+components:
+  schemas:
+    ABrankingItem:
+      type: object
+      properties:
+        name:
+          type: string
+        image_url:
+          type: string
+        description:
+          type: string
+          
+
+    ABranking:
+      type: object
+      properties:
+        choiceA:
+          $ref: '#/components/schemas/ABrankingItem'
+        choiceB:
+          $ref: '#/components/schemas/ABrankingItem'
+    
+    CriterionRanking:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Criterion name
+        options:
+          type: array
+          description: Possible choices
+          items:
+            type: string
