@@ -1,0 +1,3 @@
+[submodule "ranking_client"]
+	path = ranking_client
+	url = git@github.com:funsafe-math/ranking_client.git

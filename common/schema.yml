@@ -22,7 +22,7 @@ paths:
                 items:
                   type: object
                   properties:
-                    name:
+                    desc:   # opis
                       type: string
                       description: Ranking name
                     id: # Id rankingu
@@ -76,28 +76,62 @@ paths:
                   - $ref: '#/components/schemas/CriterionRanking'
         '404':
           description: There are no more choices to be made
-
-
+    put:
+      summary: Send choice
+      parameters:
+        - name: rankingId
+          in: path
+          required: true
+          description: Id of selected ranking
+          schema:
+            type: string
+        - name: choice
+          in: query
+          required: true
+          description: User choice
+          schema:
+            type: string # TODO: fix
+      responses:
+        '200':
+          description: Successful send
+        # TODO: fail case
+          
 components:
   schemas:
-    ABrankingItem:
+    # Alternatywy
+    Alternative:
       type: object
       properties:
+        id:
+          type: integer
         name:
-          type: string
-        image_url:
           type: string
         description:
           type: string
-          
-
+        # image_url:
+        #   type: string
+    # Wyniki
+    Results:
+      type: array
+      items:
+        $ref: "#/components/schemas/Result"
+    Result:
+      type: object
+      properties:
+        rankingId:
+          type: integer
+        alternative_id:
+          type: string
+        place:
+          type: integer
+    
     ABranking:
       type: object
       properties:
         choiceA:
-          $ref: '#/components/schemas/ABrankingItem'
+          $ref: '#/components/schemas/Alternative'
         choiceB:
-          $ref: '#/components/schemas/ABrankingItem'
+          $ref: '#/components/schemas/Alternative'
     
     CriterionRanking:
       type: object
@@ -110,3 +144,4 @@ components:
           description: Possible choices
           items:
             type: string
+
