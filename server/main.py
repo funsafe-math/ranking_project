@@ -1,17 +1,34 @@
 from typing import Annotated, List, Literal, Union
 
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from pydantic import BaseModel, Field
+import time
+import random
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Ranking API",
     description="API for binary ranking app",
     version="0.0.1",
-    servers=[
+    # root_path="/api",
+    servers=[ 
+        { "url": "http://127.0.0.1:8000/api/v1" },
         {"url": "http://127.0.0.1:8000", "description": "Local test server"},
     ],
 )
 app.openapi_version = "3.0.2"
+origins = [
+    "http://localhost:5000",
+    "http://localhost:8080",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class Ranking(BaseModel):
@@ -22,7 +39,7 @@ class Ranking(BaseModel):
 class Alternative(BaseModel):
     id: int = 0
     name: str = 'Batman'
-    descripton: str = 'Batman comicbook character'
+    description: str = 'Batman comicbook character'
 
 
 class ABChoice(BaseModel):
@@ -107,19 +124,36 @@ class ResultRaw(BaseModel):
 
 @app.get('/rankings')
 def read_rankings() -> List[Ranking]:
-    ranking = Ranking()
-    return [ranking]
+    rankings = [
+        Ranking(desc="Superheroes ranking"),
+        Ranking(desc="Superheroes ranking v2"),
+        Ranking(desc="Profesor ranking"),
+        Ranking(desc="Car ranking"),
+    ]
+    # ranking = Ranking()
+    # time.sleep(2)
+    return rankings
 
+counter = 0
 @app.get('/rank/{rankingId}')
 def read_rank(rankingId: int) -> Choice:
-    return CriterionChoice(choiceType='CriterionChoice')
+    global counter
+    counter+=1
+    if counter & 1 == 1:
+        return CriterionChoice(choiceType='CriterionChoice')
+    else:
+        choiceA = Alternative(name="Opcja A", description="option A", id=69)
+        choiceB = Alternative(name="Opcja B", description="option B", id=420)
+        return ABChoice(choiceA=choiceA, choiceB=choiceB, choiceType="ABChoice")
 
-@app.put('/rankAB/{rankingId}')
+@app.post('/rankAB/{rankingId}')
 def write_rank_AB(rankingId: int, data: ABInput):
+    print(data)
     return
 
-@app.put('/rankCriterion/{rankingId}')
+@app.post('/rankCriterion/{rankingId}')
 def write_rank_criterion(rankingId: int, data: CriterionInput):
+    print(data)
     return
 
 @app.get('/results')
