@@ -6,6 +6,7 @@ import time
 import random
 from fastapi.middleware.cors import CORSMiddleware
 
+
 app = FastAPI(
     title="Ranking API",
     description="API for binary ranking app",
@@ -32,15 +33,15 @@ app.add_middleware(
 
 
 class Ranking(BaseModel):
-    desc: str = 'Superheroes ranking'
     id: int = 99999999
-    expiring: int = 1699899952 # Unix timestamp
+    desc: str = 'Superheroes ranking'
+    expiring: int = 1707737892 # Unix timestamp
+
 
 class Alternative(BaseModel):
     id: int = 0
     name: str = 'Batman'
     description: str = 'Batman comicbook character'
-
 
 class ABChoice(BaseModel):
     choiceType: Literal['ABChoice']
@@ -51,7 +52,7 @@ class CriterionChoice(BaseModel):
     choiceType: Literal['CriterionChoice']
     name: str = 'strength'
     description: str = 'lorem ipsum'
-    options: list[str] = ['important', 'not important']
+
 
 class Result(BaseModel):
     rankingId: int = -1
@@ -74,13 +75,13 @@ class Variables(BaseModel):
     aggregation_method: str = 'AIP'
     completness_required: bool = True
 
-class ResultRawCriterion(BaseModel):
+class Criterion(BaseModel):
     id: int = 1
     parent_criterion: str = 'none'
     name: str = 'lore ipsum'
     description: str = 'lore lore ipsum'
 
-class ResultRawExpert(BaseModel):
+class Expert(BaseModel):
     id: int = 1
     name: str = 'Joe Doe'
     address: str = 'example@example.com'
@@ -91,8 +92,8 @@ class Scale(BaseModel):
 
 class ResultRawModel(BaseModel):
     alternatives: List[Alternative] = []
-    criteria: List[ResultRawCriterion] = []
-    experts: List[ResultRawExpert] = []
+    criteria: List[Criterion] = []
+    experts: List[Expert] = []
     ranking_method: str = 'EVM'
     aggregation_method: str = 'AIP'
     completeness_required: bool = True
@@ -149,6 +150,7 @@ def read_rank(rankingId: int) -> Choice:
 @app.post('/rankAB/{rankingId}')
 def write_rank_AB(rankingId: int, data: ABInput):
     print(data)
+    print(ABChoice.model_json_schema())
     return
 
 @app.post('/rankCriterion/{rankingId}')
@@ -176,4 +178,9 @@ def get_raw_results(rankingId: int) -> ResultRaw:
 # def read_root():
 #     return "Hello World"
 
-
+# r = Ranking(ranking_id = 50, description = "pydantic test ranking", expiring = 123456789)
+# a = Alternative(id = 20, name = "Antman", description = "some description")
+# c = CriterionChoice(choiceType = "CriterionChoice", name = "jakiś superbohater", description = "opis jakiegoś suberbohatera")
+# s = Scale(value = 5.0, description = "very important")
+# v = Variables()
+# e = Expert()
