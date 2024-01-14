@@ -1,14 +1,15 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, Query
+from typing import List
 
-from database import *
-from server import main
-
+import schemas
+from models import *
+# import main
 
 # Tworzymy ranking
-def create_ranking(db: Session, ranking: main.Ranking):
+def create_ranking(db: Session, ranking: schemas.Ranking):
     new_ranking = Rankings(
-        ranking_id=ranking.id,
-        description=ranking.desc,
+        ranking_id=ranking.ranking_id,
+        description=ranking.description,
         expiring=ranking.expiring
     )
     db.add(new_ranking)
@@ -18,11 +19,11 @@ def create_ranking(db: Session, ranking: main.Ranking):
 
 
 # Dodawanie alternatywy do rankingu
-def create_alternative(db: Session, alternative: main.Alternative, ranking_id: int):
+def create_alternative(db: Session, alternative: schemas.Alternative, ranking_id: int):
     new_alternative = Alternatives(
-        alternative_id=alternative.id,
+        alternative_id=alternative.alternative_id,
         ranking_id=ranking_id,
-        description=alternative.desc,
+        description=alternative.description,
         name=alternative.name
     )
     db.add(new_alternative)
@@ -32,9 +33,9 @@ def create_alternative(db: Session, alternative: main.Alternative, ranking_id: i
 
 
 # Dodawanie kryterium do rankingu
-def create_criteria(db: Session, criteria: main.Criterion, ranking_id):
+def create_criteria(db: Session, criteria: schemas.Criterion, ranking_id):
     new_criteria = Criteria(
-        criteria_id=id,
+        criteria_id=criteria.criteria_id,
         ranking_id=ranking_id,
         name=criteria.name,
         description=criteria.description)
@@ -45,7 +46,7 @@ def create_criteria(db: Session, criteria: main.Criterion, ranking_id):
 
 
 # Dodawanie skali do rankingu
-def create_scale(db: Session, scale: main.Scale, ranking_id: int):
+def create_scale(db: Session, scale: schemas.Scale, ranking_id: int):
     new_scale = Scale(
         scale_id=ranking_id,
         ranking_id=ranking_id,
@@ -58,8 +59,8 @@ def create_scale(db: Session, scale: main.Scale, ranking_id: int):
 
 
 # Dodawanie zmiennych do rankingu
-def create_variables(db: Session, variables: main.Variables, ranking_id: int):
-    new_variables = Scale(
+def create_variables(db: Session, variables: schemas.Variables, ranking_id: int):
+    new_variables = Variables(
         ranking_id=ranking_id,
         variable_id=ranking_id,
         ranking_method=variables.ranking_method,
@@ -73,7 +74,7 @@ def create_variables(db: Session, variables: main.Variables, ranking_id: int):
 
 
 # Tworzymy eksperta
-def create_expert(db: Session, expert: main.Expert, ranking_id: int):
+def create_expert(db: Session, expert: schemas.Expert, ranking_id: int):
     new_expert = Experts(
         ranking_id=ranking_id,
         expert_id=expert.id,
@@ -135,13 +136,13 @@ def delete_alternative(db: Session, ranking_id: int, alternative_id: int) -> boo
 
 
 # Pytanie o listę alternatyw dla rankingu
-def get_alternatives_by_ranking_id(db: Session, ranking_id: int):
+def get_alternatives_by_ranking_id(db: Session, ranking_id: int) -> List[Alternatives]:
     alternatives = db.query(Alternatives).filter(Alternatives.ranking_id == ranking_id).all()
     return alternatives
 
 
 # Pytanie o listę kryteriów dla rankingu
-def get_criteria_by_ranking_id(db: Session, ranking_id: int):
+def get_criteria_by_ranking_id(db: Session, ranking_id: int) -> List[Criteria]:
     criteria = db.query(Criteria).filter(Criteria.ranking_id == ranking_id).all()
     return criteria
 
@@ -209,7 +210,7 @@ def get_weights_by_ranking_id(db: Session, ranking_id: int):
 
 
 # # Dodawanie wag
-def add_weights_from_matrix(db: Session, matrix_data: main.ResultRawMatrix, ranking_id: int, expert_id: int,
+def add_weights_from_matrix(db: Session, matrix_data: schemas.ResultRawMatrix, ranking_id: int, expert_id: int,
                             scale_id: int):
     new_weights = Weights(
         ranking_id=ranking_id,
@@ -239,12 +240,12 @@ def create_results(db: Session, ranking_id: int, alternative_id: int, place: int
 
 
 # teścik
-# create_ranking(session,main.r)
-# create_alternative(session,main.a,50)
-# create_criteria(session,main.c,50)
-# create_scale(session,main.s, 10)
-# create_variables(session,main.v,10)
-# create_expert(session, main.e,5)
+# create_ranking(session,schemas.r)
+# create_alternative(session,schemas.a,50)
+# create_criteria(session,schemas.c,50)
+# create_scale(session,schemas.s, 10)
+# create_variables(session,schemas.v,10)
+# create_expert(session, schemas.e,5)
 # create_data(session, data_id = 4, ranking_id = 4, expert_id = 7,
 #                criteria_id = 5, alternative1_id = 1, alternative2_id = 2, result = 1)
 # get_rankings(session)
@@ -252,4 +253,3 @@ def create_results(db: Session, ranking_id: int, alternative_id: int, place: int
 # get_alternatives_by_ranking_id(session, 50)
 # get_criteria_by_ranking_id(session,50)
 # get_scales_by_ranking_id(10)
-
