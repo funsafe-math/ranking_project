@@ -1,10 +1,12 @@
-from typing import Annotated, List, Literal, Union
-
-from fastapi import FastAPI, APIRouter
-from pydantic import BaseModel, Field
+from fastapi import Depends, FastAPI, APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 import time
 import random
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from typing import List
+import crud, models, schemas
+from database import SessionLocal, engine
 
 app = FastAPI(
     title="Ranking API",
@@ -12,7 +14,7 @@ app = FastAPI(
     version="0.0.1",
     # root_path="/api",
     servers=[
-        {"url": "http://127.0.0.1:8000/api/v1"},
+        # {"url": "http://127.0.0.1:8000/api/v1"},
         {"url": "http://127.0.0.1:8000", "description": "Local test server"},
     ],
 )
@@ -30,181 +32,138 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-class Ranking(BaseModel):
-    id: int = 99999999
-    desc: str = 'Superheroes ranking'
-    expiring: int = 1707737892  # Unix timestamp
-
-
-class Alternative(BaseModel):
-    id: int = 0
-    name: str = 'Batman'
-    description: str = 'Batman comicbook character'
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-class ABChoice(BaseModel):
-    choiceType: Literal['ABChoice']
-    choiceA: Alternative = Alternative()
-    choiceB: Alternative = Alternative()
+@app.post('/create_ranking')
+def create_ranking(data: schemas.Ranking, db: Session = Depends(get_db)):
+    rankings = crud.get_rankings(db)
+    if any([r.description == data.description for r in rankings]):
+        raise HTTPException(status_code=409, detail="Ranking with this description already exists")
+
+    while True:
+        new_id = random.randint(0, 1<<32)
+        if not any([r.ranking_id == new_id for r in rankings]):
+            break
+    data.ranking_id = new_id
+    crud.create_ranking(db, data)
+    return
+
+@app.post('/create_alternative/{rankingId}')
+def create_alternative(rankingId: int, data: schemas.Alternative, db: Session = Depends(get_db)):
+    alternatives_in_ranking = crud.get_alternatives_by_ranking_id(db, rankingId)
+    if any([a.name == data.name for a in alternatives_in_ranking]):
+        raise HTTPException(status_code=409, detail="Alternative with this name already exists")
+    if any([a.description == data.description for a in alternatives_in_ranking]):
+        raise HTTPException(status_code=409, detail="Alternative with this description already exists")
+
+    while True:
+        new_id = random.randint(0, 1<<32)
+        if not any([r.alternative_id == new_id for r in alternatives_in_ranking]):
+            break
+    data.alternative_id = new_id
+    return crud.create_alternative(db, data, rankingId)
+
+@app.post('/create_criteria/{rankingId}')
+def create_criteria(rankingId: int, data: schemas.Criterion, db: Session = Depends(get_db)):
+    criterias_in_ranking = crud.get_criteria_by_ranking_id(db, rankingId)
+    if any([a.name == data.name for a in criterias_in_ranking]):
+        raise HTTPException(status_code=409, detail="criteria with this name already exists")
+    if any([a.description == data.description for a in criterias_in_ranking]):
+        raise HTTPException(status_code=409, detail="criteria with this description already exists")
+
+    while True:
+        new_id = random.randint(0, 1<<32)
+        if not any([r.criteria_id == new_id for r in criterias_in_ranking]):
+            break
+    data.criteria_id = new_id
+    return crud.create_criteria(db, data, rankingId)
 
 
-class CriterionChoice(BaseModel):
-    choiceType: Literal['CriterionChoice']
-    name: str = 'strength'
-    description: str = 'lorem ipsum'
+@app.post('/create_scale/{rankingId}')
+def create_scale(rankingId: int, data: schemas.Scale, db: Session = Depends(get_db)):
+    scales_in_ranking = crud.get_scale_values_by_ranking_id(db, rankingId)
+    if any([a.value == data.value for a in scales_in_ranking]):
+        raise HTTPException(status_code=409, detail="scale with this value already exists")
+    if any([a.description == data.description for a in scales_in_ranking]):
+        raise HTTPException(status_code=409, detail="scale with this description already exists")
+
+    return crud.create_scale(db, data, rankingId)
 
 
-class Result(BaseModel):
-    rankingId: int = -1
-    alternative_id: int = -1
-    place: int = -1
+@app.post('/update_ranking_info/{rankingId}')
+def update_ranking(rankingId: int, data: schemas.Ranking, db: Session = Depends(get_db)):
+    if crud.update_ranking_info(db, rankingId, data.description, data.expiring):
+        return
+    raise HTTPException(status_code=409, detail="Could not update ranking")
 
+@app.post('/create_variables/{rankingId}')
+def create_variables(rankingId: int, data: schemas.Variables, db: Session = Depends(get_db)):
+    return crud.create_variables(db, data, rankingId)
 
-Choice = Annotated[Union[ABChoice, CriterionChoice], Field(discriminator="choiceType")]
+@app.post('/create_expert/{rankingId}')
+def create_expert(rankingId: int, data: schemas.Expert, db: Session = Depends(get_db)):
+    ## TODO: get all experts and check for conflicts
+    return crud.create_expert(db, data, rankingId)
 
-
-class ABInput(BaseModel):
-    alternativeA_id: int = -1
-    alternativeB_id: int = -1
-    winner_id: int = -1
-
-
-class CriterionInput(BaseModel):
-    name: str = 'strength'
-    chosen_option: str = 'not important'
-
-
-class Variables(BaseModel):
-    ranking_method: str = 'EVM'
-    aggregation_method: str = 'AIP'
-    completness_required: bool = True
-
-
-class Criterion(BaseModel):
-    id: int = 1
-    parent_criterion: str = 'none'
-    name: str = 'lore ipsum'
-    description: str = 'lore lore ipsum'
-
-
-class Expert(BaseModel):
-    id: int = 1
-    name: str = 'Joe Doe'
-    address: str = 'example@example.com'
-
-
-class Scale(BaseModel):
-    value: float = 0.5
-    description: str = 'moderate important'
-
-
-class ResultRawModel(BaseModel):
-    alternatives: List[Alternative] = []
-    criteria: List[Criterion] = []
-    experts: List[Expert] = []
-    ranking_method: str = 'EVM'
-    aggregation_method: str = 'AIP'
-    completeness_required: bool = True
-    scale: List[Scale] = []
-
-
-class ResultRawMatrix(BaseModel):
-    criterion: int = 3
-    pcm: List[List[float]] = []
-
-
-class ResultRawDataSet(BaseModel):
-    matrices: List[ResultRawMatrix] = []
-
-
-class ResultRawData(BaseModel):
-    expertId: int = 1
-    data_set: List[ResultRawDataSet] = []
-
-
-class ResultRawWeight(BaseModel):
-    criterion: int = 3
-    w: List[float] = []
-
-
-class ResultRawDecisionScenario(BaseModel):
-    model: ResultRawModel = ResultRawModel()
-    data: List[ResultRawData] = []
-    weights: List[ResultRawWeight] = []
-
-
-class ResultRaw(BaseModel):
-    decision_scenario: ResultRawDecisionScenario = ResultRawDecisionScenario()
-
-
-@app.get('/rankings')
-def read_rankings() -> List[Ranking]:
-    rankings = [
-        Ranking(desc="Superheroes ranking"),
-        Ranking(desc="Superheroes ranking v2"),
-        Ranking(desc="Profesor ranking"),
-        Ranking(desc="Car ranking"),
-    ]
-    # ranking = Ranking()
-    # time.sleep(2)
+@app.get('/rankings', response_model=List[schemas.Ranking])
+def read_rankings(db: Session = Depends(get_db)):
+    rankings = crud.get_rankings(db)
+    if not rankings:
+        return JSONResponse(
+            content=[],
+            status_code=404
+        )
+    print([r.ranking_id for r in rankings])
     return rankings
 
+class QuestionGenerator:
+    #TODO: implement
+    counter = 0
+    def __init__(self):
+        self.counter = 0
 
-counter = 0
+    def get_question(self, ranking_id: int, expert_id: int) -> schemas.Choice:
+        self.counter += 1
+        if self.counter & 1 == 1:
+            return schemas.CriterionChoice(choiceType='CriterionChoice')
+        else:
+            choiceA = schemas.Alternative(name="Opcja A", description="option A", alternative_id=69)
+            choiceB = schemas.Alternative(name="Opcja B", description="option B", alternative_id=420)
+            return schemas.ABChoice(choiceA=choiceA, choiceB=choiceB, choiceType="ABChoice")
 
+generator = QuestionGenerator()
 
 @app.get('/rank/{rankingId}')
-def read_rank(rankingId: int) -> Choice:
-    global counter
-    counter += 1
-    if counter & 1 == 1:
-        return CriterionChoice(choiceType='CriterionChoice')
-    else:
-        choiceA = Alternative(name="Opcja A", description="option A", id=69)
-        choiceB = Alternative(name="Opcja B", description="option B", id=420)
-        return ABChoice(choiceA=choiceA, choiceB=choiceB, choiceType="ABChoice")
+def read_a_question(rankingId: int) -> schemas.Choice:
+    global generator
+    return generator.get_question(ranking_id=rankingId, expert_id=0)
+    
 
 
 @app.post('/rankAB/{rankingId}')
-def write_rank_AB(rankingId: int, data: ABInput):
-    print(data)
-    print(ABChoice.model_json_schema())
-    return
-
-
-@app.post('/rankCriterion/{rankingId}')
-def write_rank_criterion(rankingId: int, data: CriterionInput):
+def write_rank_AB(rankingId: int, data: schemas.ABInput):
     print(data)
     return
 
+# @app.post('/rankCriterion/{rankingId}')
+# def write_rank_criterion(rankingId: int, data: CriterionInput):
+#     print(data)
+#     return
 
-@app.get('/results')
-def read_results() -> List[Result]:
-    return []
+# @app.get('/results')
+# def read_results() -> List[Result]:
+#     return []
 
+# @app.get('/variables/{rankingId}')
+# def read_variables(rankingId: int) -> Variables:
+#     return Variables()
 
-@app.get('/variables/{rankingId}')
-def read_variables(rankingId: int) -> Variables:
-    return Variables()
-
-
-@app.put('/variables/{rankingId}')
-def write_variables(rankingId: int, data: Variables):
-    return
-
-
-@app.get('/raw_results/{rankingId}')
-def get_raw_results(rankingId: int) -> ResultRaw:
-    return ResultRaw()
-
-# @app.get("/")
-# def read_root():
-#     return "Hello World"
-
-# r = Ranking(ranking_id = 50, description = "pydantic test ranking", expiring = 123456789)
-# a = Alternative(id = 20, name = "Antman", description = "some description")
-# c = CriterionChoice(choiceType = "CriterionChoice", name = "jakiś superbohater", description = "opis jakiegoś suberbohatera")
-# s = Scale(value = 5.0, description = "very important")
-# v = Variables()
-# e = Expert()
+# @app.get('/raw_results/{rankingId}')
+# def get_raw_results(rankingId: int) -> ResultRaw:
+#     return ResultRaw()
