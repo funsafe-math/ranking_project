@@ -72,6 +72,11 @@ def create_variables(db: Session, variables: schemas.Variables, ranking_id: int)
     db.refresh(new_variables)
     return new_variables
 
+# Zbieranie zmiennych dla rankingu
+
+def get_variables(db: Session, ranking_id: int) -> Variables | None:
+    return db.query(Variables).filter(Variables.ranking_id == ranking_id).first()
+
 
 # Tworzymy eksperta
 def create_expert(db: Session, expert: schemas.Expert, ranking_id: int):
