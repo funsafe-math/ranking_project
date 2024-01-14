@@ -6,14 +6,13 @@ import time
 import random
 from fastapi.middleware.cors import CORSMiddleware
 
-
 app = FastAPI(
     title="Ranking API",
     description="API for binary ranking app",
     version="0.0.1",
     # root_path="/api",
-    servers=[ 
-        { "url": "http://127.0.0.1:8000/api/v1" },
+    servers=[
+        {"url": "http://127.0.0.1:8000/api/v1"},
         {"url": "http://127.0.0.1:8000", "description": "Local test server"},
     ],
 )
@@ -35,7 +34,7 @@ app.add_middleware(
 class Ranking(BaseModel):
     id: int = 99999999
     desc: str = 'Superheroes ranking'
-    expiring: int = 1707737892 # Unix timestamp
+    expiring: int = 1707737892  # Unix timestamp
 
 
 class Alternative(BaseModel):
@@ -43,10 +42,12 @@ class Alternative(BaseModel):
     name: str = 'Batman'
     description: str = 'Batman comicbook character'
 
+
 class ABChoice(BaseModel):
     choiceType: Literal['ABChoice']
     choiceA: Alternative = Alternative()
     choiceB: Alternative = Alternative()
+
 
 class CriterionChoice(BaseModel):
     choiceType: Literal['CriterionChoice']
@@ -59,21 +60,26 @@ class Result(BaseModel):
     alternative_id: int = -1
     place: int = -1
 
+
 Choice = Annotated[Union[ABChoice, CriterionChoice], Field(discriminator="choiceType")]
+
 
 class ABInput(BaseModel):
     alternativeA_id: int = -1
     alternativeB_id: int = -1
     winner_id: int = -1
 
+
 class CriterionInput(BaseModel):
     name: str = 'strength'
     chosen_option: str = 'not important'
+
 
 class Variables(BaseModel):
     ranking_method: str = 'EVM'
     aggregation_method: str = 'AIP'
     completness_required: bool = True
+
 
 class Criterion(BaseModel):
     id: int = 1
@@ -81,14 +87,17 @@ class Criterion(BaseModel):
     name: str = 'lore ipsum'
     description: str = 'lore lore ipsum'
 
+
 class Expert(BaseModel):
     id: int = 1
     name: str = 'Joe Doe'
     address: str = 'example@example.com'
 
+
 class Scale(BaseModel):
     value: float = 0.5
     description: str = 'moderate important'
+
 
 class ResultRawModel(BaseModel):
     alternatives: List[Alternative] = []
@@ -99,29 +108,35 @@ class ResultRawModel(BaseModel):
     completeness_required: bool = True
     scale: List[Scale] = []
 
+
 class ResultRawMatrix(BaseModel):
     criterion: int = 3
     pcm: List[List[float]] = []
 
+
 class ResultRawDataSet(BaseModel):
     matrices: List[ResultRawMatrix] = []
+
 
 class ResultRawData(BaseModel):
     expertId: int = 1
     data_set: List[ResultRawDataSet] = []
 
+
 class ResultRawWeight(BaseModel):
     criterion: int = 3
     w: List[float] = []
 
-    
+
 class ResultRawDecisionScenario(BaseModel):
     model: ResultRawModel = ResultRawModel()
     data: List[ResultRawData] = []
     weights: List[ResultRawWeight] = []
 
+
 class ResultRaw(BaseModel):
     decision_scenario: ResultRawDecisionScenario = ResultRawDecisionScenario()
+
 
 @app.get('/rankings')
 def read_rankings() -> List[Ranking]:
@@ -135,11 +150,14 @@ def read_rankings() -> List[Ranking]:
     # time.sleep(2)
     return rankings
 
+
 counter = 0
+
+
 @app.get('/rank/{rankingId}')
 def read_rank(rankingId: int) -> Choice:
     global counter
-    counter+=1
+    counter += 1
     if counter & 1 == 1:
         return CriterionChoice(choiceType='CriterionChoice')
     else:
@@ -147,28 +165,34 @@ def read_rank(rankingId: int) -> Choice:
         choiceB = Alternative(name="Opcja B", description="option B", id=420)
         return ABChoice(choiceA=choiceA, choiceB=choiceB, choiceType="ABChoice")
 
+
 @app.post('/rankAB/{rankingId}')
 def write_rank_AB(rankingId: int, data: ABInput):
     print(data)
     print(ABChoice.model_json_schema())
     return
 
+
 @app.post('/rankCriterion/{rankingId}')
 def write_rank_criterion(rankingId: int, data: CriterionInput):
     print(data)
     return
 
+
 @app.get('/results')
 def read_results() -> List[Result]:
     return []
+
 
 @app.get('/variables/{rankingId}')
 def read_variables(rankingId: int) -> Variables:
     return Variables()
 
+
 @app.put('/variables/{rankingId}')
 def write_variables(rankingId: int, data: Variables):
     return
+
 
 @app.get('/raw_results/{rankingId}')
 def get_raw_results(rankingId: int) -> ResultRaw:
