@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from typing import List
 import crud, models, schemas
 from database import SessionLocal, engine
+import ranker.ranking_manager as ranking_manager
 
 app = FastAPI(
     title="Ranking API",
@@ -143,7 +144,7 @@ generator = QuestionGenerator()
 def read_a_question(rankingId: int) -> schemas.Choice:
     global generator
     return generator.get_question(ranking_id=rankingId, expert_id=0)
-    
+
 
 
 @app.post('/rankAB/{rankingId}')
