@@ -36,6 +36,16 @@ class ABInput(BaseModel):
     alternativeA_id: int = -1
     alternativeB_id: int = -1
     winner_id: int = -1
+    expert_id: int
+    criteria_id: int
+
+class Weights(BaseModel):
+    weights_id: int
+    ranking_id: int
+    expert_id: int
+    criteria_id: int
+    scale_id: int
+    # weights: str
 
 class CriterionInput(BaseModel):
     name: str = 'strength'
@@ -48,20 +58,25 @@ class Variables(BaseModel):
 
 class Criterion(BaseModel):
     criteria_id : int = 1
-    parent_criterion: str = 'none'
+    ranking_id: int = 0
     name: str = 'lore ipsum'
     description: str = 'lore lore ipsum'
     class Config:
         from_attributes = True
 
 class Expert(BaseModel):
-    id: int = 1
+    expert_id: int = 1
     name: str = 'Joe Doe'
-    address: str = 'example@example.com'
+    email: str = 'example@example.com'
+    admin: bool = False
 
 class Scale(BaseModel):
-    value: float = 0.5
-    description: str = 'moderate important'
+    scale_id: int
+    description: str
+    value: float
+    ranking_id: int
+    class Config:
+        from_attributes = True
 
 class ResultRawModel(BaseModel):
     alternatives: List[Alternative] = []
