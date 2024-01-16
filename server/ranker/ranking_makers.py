@@ -34,6 +34,7 @@ class EVM:
         max_index = np.where(w == np.max(w))[0][0]
         v = v[:,max_index]
         v = v / np.sum(v)
+        v = np.real(v)
         return v
 
     def __call__(self, matrix, *args, **kwargs):
@@ -70,6 +71,7 @@ class GMM:
             w[i] = np.prod(matrix[i])
             w[i] = np.power(w[i], 1.0 / matrix.shape[0])
         w = w / np.sum(w)
+        w = np.real(w)
         return w
 
     def __call__(self, matrix, *args, **kwargs):

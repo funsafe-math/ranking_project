@@ -321,6 +321,28 @@ def create_results(db: Session, ranking_id: int, alternative_id: int, place: int
 def find_expert(db: Session, email: str) -> Experts | None:
     return db.query(Experts).filter(Experts.email == email).first()
 
+def update_alternative_rank(db: Session, ranking_id: int, alternative_id: int, place: int) -> bool:
+    try:
+        result = db.query(Results).filter(Results.ranking_id == ranking_id, Results.alternative_id == alternative_id).first()
+
+        if result:
+            result.place = place
+            db.commit()
+            db.refresh(result)
+            return True
+        else:
+            new_result = Results(ranking_id=ranking_id, alternative_id=alternative_id, place=place)
+            db.add(new_result)
+            db.commit()
+            db.refresh(new_result)
+    except Exception as e:
+        print(f"Error updating ranking info: {e}")
+        return False
+
+def get_alternative_rank(db: Session, ranking_id: int) -> List[Results]:
+    return db.query(Results).filter(Results.ranking_id == ranking_id).all()
+
+
 
 # teścik
 # create_ranking(session,schemas.r)

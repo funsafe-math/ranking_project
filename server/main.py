@@ -276,12 +276,19 @@ def add_weight(rankingId: int, data: schemas.Weights, db: Session = Depends(get_
             break
     data.weights_id = new_id
     return crud.create_weight(db, rankingId, data)
-    
+
+@app.post('/trigger_algorithm/{rankingId}')
+def trigger_ranking_algorithm(rankingId: int, db: Session = Depends(get_db)):
+    manager = ranking_manager.RankerManager()
+    return manager.start_ranking_algorithm(db, rankingId)
+
+@app.get('/get_results/{rankingId}')
+def get_alternative_rank(rankingId: int, db: Session = Depends(get_db)):
+    return crud.get_alternative_rank(db, rankingId)
 
 
 
 
-    
 # @app.post('/rankCriterion/{rankingId}')
 # def write_rank_criterion(rankingId: int, data: CriterionInput):
 #     print(data)

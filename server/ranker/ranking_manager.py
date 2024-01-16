@@ -15,7 +15,7 @@ class RankerManager:
     def start_ranking_algorithm(self, db: Session, ranking_id: int) -> Future[str]:
         criterias = crud.get_criteria_by_ranking_id(db, ranking_id)
         alternatives = crud.get_alternatives_by_ranking_id(db, ranking_id)
-        scales = crud.get_scales_by_ranking_id(db, ranking_id)
+        scales = crud.get_scale_values_by_ranking_id(db, ranking_id)
         data = crud.get_data_by_ranking_id(db, ranking_id)
         weights = crud.get_weights_by_ranking_id(db, ranking_id)
 
@@ -31,7 +31,7 @@ class RankerManager:
             for c in criterias:
                 weight = 0
                 for w in weights_for_expert:
-                    if w.criterion_id == c.criterion_id:
+                    if w.criteria_id == c.criteria_id:
                         scale_id = w.scale_id
                         for s in scales:
                             if s.scale_id == scale_id:
@@ -41,7 +41,7 @@ class RankerManager:
 
                 matrix = [[0 for i in range(len(alternatives))] for j in range(len(alternatives))]
                 for d in data:
-                    if d.expert_id == e and d.criterion_id == c.criterion_id:
+                    if d.expert_id == e and d.criteria_id == c.criteria_id:
                         if d.result == False:
                             matrix[alternative_id_to_matrix_place_map[d.alternative1_id]] \
                                 [alternative_id_to_matrix_place_map[d.alternative2_id]] = weight
@@ -57,7 +57,6 @@ class RankerManager:
                 all_matrices.append(matrix)
 
         np_matrices = np.array(all_matrices)
-        np_matrices = np_matrices.reshape((matrices_count, len(alternatives), len(alternatives)))
 
         var = crud.get_variables(db, ranking_id)
         ranker = EVM()
@@ -76,6 +75,7 @@ class RankerManager:
         result = result.tolist()
 
         alternatives_with_rank = [(matrix_place_to_alternative_id_map[i], result[i]) for i in range(len(alternatives))]
+        print(alternatives_with_rank)
 
         alternatives_with_rank.sort(key=lambda x: x[1], reverse=True)
 
