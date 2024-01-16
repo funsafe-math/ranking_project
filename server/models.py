@@ -38,7 +38,7 @@ class Weights(Base):
     expert_id = Column(Integer, ForeignKey("Experts.expert_id"))
     criteria_id = Column(Integer, ForeignKey("Criteria.criteria_id"))
     scale_id = Column(Integer, ForeignKey("Scale.scale_id"))
-    weights = Column(JSON)
+    # weights = Column(JSON)
 
 class Data(Base):
     __tablename__ = 'Data'
@@ -63,6 +63,7 @@ class Experts(Base):
     ranking_id = Column(Integer, ForeignKey("Rankings.ranking_id"))
     name = Column(String)
     email = Column(String)
+    admin = Column(Boolean)
 
 class Results(Base):
     __tablename__ = 'Results'
