@@ -1,10 +1,7 @@
-from sqlalchemy import create_engine, ForeignKey, Column, String, CHAR, Integer, Boolean, Float, JSON
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, JSON
+from sqlalchemy.orm import relationship
 
-
-Base = declarative_base()
+from database import Base, engine
 
 class Rankings(Base):
     __tablename__ = 'Rankings'
@@ -41,7 +38,7 @@ class Weights(Base):
     expert_id = Column(Integer, ForeignKey("Experts.expert_id"))
     criteria_id = Column(Integer, ForeignKey("Criteria.criteria_id"))
     scale_id = Column(Integer, ForeignKey("Scale.scale_id"))
-    weights = Column(JSON)
+    # weights = Column(JSON)
 
 class Data(Base):
     __tablename__ = 'Data'
@@ -66,6 +63,7 @@ class Experts(Base):
     ranking_id = Column(Integer, ForeignKey("Rankings.ranking_id"))
     name = Column(String)
     email = Column(String)
+    admin = Column(Boolean)
 
 class Results(Base):
     __tablename__ = 'Results'
@@ -74,11 +72,4 @@ class Results(Base):
     alternative_id = Column(Integer, ForeignKey("Alternatives.alternative_id"))
     place = Column(Integer)
 
-engine = create_engine("sqlite:///mydb.db", echo = True)
 Base.metadata.create_all(bind=engine)
-Session = sessionmaker(bind = engine)
-session = Session()
-
-
-
-
