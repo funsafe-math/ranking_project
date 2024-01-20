@@ -42,7 +42,7 @@ class RankerManager:
                 matrix = [[0 for i in range(len(alternatives))] for j in range(len(alternatives))]
                 for d in data:
                     if d.expert_id == e and d.criteria_id == c.criteria_id:
-                        if d.result == False:
+                        if d.result == True:
                             matrix[alternative_id_to_matrix_place_map[d.alternative1_id]] \
                                 [alternative_id_to_matrix_place_map[d.alternative2_id]] = weight
                             matrix[alternative_id_to_matrix_place_map[d.alternative2_id]] \
