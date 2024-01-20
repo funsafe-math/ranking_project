@@ -66,9 +66,9 @@ class RankerManager:
                 ranker = EVM()
             elif var.ranking_method == 'GMM':
                 ranker = GMM()
-            if var.group_method == 'AIJ':
+            if var.aggregation_method == 'AIJ':
                 group_method_arg = 'AIJ'
-            elif var.group_method == 'AIP':
+            elif var.aggregation_method == 'AIP':
                 group_method_arg = 'AIP'
 
         result = ranker(np_matrices, group_method=group_method_arg)

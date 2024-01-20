@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session, Query
 from typing import List
 
+import numpy as np
+
 import schemas
 from models import *
 # import main
@@ -341,6 +343,99 @@ def update_alternative_rank(db: Session, ranking_id: int, alternative_id: int, p
 
 def get_alternative_rank(db: Session, ranking_id: int) -> List[Results]:
     return db.query(Results).filter(Results.ranking_id == ranking_id).all()
+
+def get_ranking_method(db: Session, ranking_id: int):
+    return db.query(Variables).filter(Variables.ranking_id == ranking_id).first().ranking_method
+
+def get_aggregation_method(db: Session, ranking_id: int):
+    return db.query(Variables).filter(Variables.ranking_id == ranking_id).first().aggregation_method
+
+def get_scales_by_ranking_id(db: Session, ranking_id: int):
+    return db.query(Scale).filter(Scale.ranking_id == ranking_id).all()
+
+def get_matrix_by_ranking_id_expert_id_criteria_id(db: Session, ranking_id: int, expert_id: int, criteria_id: int, alternative_map):
+    num_of_alternatives = db.query(Alternatives).filter(Alternatives.ranking_id == ranking_id).count()
+    data = db.query(Data).filter(Data.ranking_id == ranking_id, Data.expert_id == expert_id, Data.criteria_id == criteria_id).all()
+    weight = db.query(Weights).filter(Weights.ranking_id == ranking_id, Weights.expert_id == expert_id, Weights.criteria_id == criteria_id).first()
+    scale = db.query(Scale).filter(Scale.ranking_id == ranking_id, Scale.scale_id == weight.scale_id).first().value if weight else 2
+    matrix = np.zeros((num_of_alternatives, num_of_alternatives))
+    for d in data:
+        if d.result == 0:
+            matrix[alternative_map[d.alternative1_id]][alternative_map[d.alternative2_id]] = scale
+            matrix[alternative_map[d.alternative2_id]][alternative_map[d.alternative1_id]] = 1/scale
+        elif d.result == 1:
+            matrix[alternative_map[d.alternative2_id]][alternative_map[d.alternative1_id]] += scale
+            matrix[alternative_map[d.alternative1_id]][alternative_map[d.alternative2_id]] += 1/scale
+    for i in range(num_of_alternatives):
+        for j in range(num_of_alternatives):
+            if i == j:
+                matrix[i][j] = 1
+    return matrix
+
+
+def get_weights_by_ranking_id_criteria_id(db, ranking_id, criteria_id, expert_map):
+    weights = db.query(Weights).filter(Weights.ranking_id == ranking_id, Weights.criteria_id == criteria_id).all()
+    ret_val = [0 for _ in range(len(expert_map))]
+    print(expert_map)
+    print(ret_val)
+    for w in weights:
+        if w.expert_id in expert_map.keys():
+            ret_val[expert_map[w.expert_id]] = db.query(Scale).filter(Scale.ranking_id == ranking_id, Scale.scale_id == w.scale_id).first().value
+    return ret_val
+
+
+def export_data(db: Session, ranking_id: int):
+    alternative_map = {
+        a.alternative_id: i for i, a in enumerate(get_all_alternatives_by_ranking_id(db, ranking_id))
+    }
+    expert_map = {
+        e.expert_id: i for i, e in enumerate(get_experts(db, ranking_id))
+    }
+    return_value = {
+        "decision_scenario": {
+
+            "model" : {
+                "alternatives": [ {
+                    "id": alternative_map[a.alternative_id],
+                    "name": a.name,
+                    "description": a.description,
+                } for a in get_alternatives_by_ranking_id(db, ranking_id)],
+                "criteria": [{
+                    "id": c.criteria_id,
+                    "name": c.name,
+                    "description": c.description,
+                } for c in get_criteria_by_ranking_id(db, ranking_id)],
+                "experts": [{
+                    "id": expert_map[e.expert_id],
+                    "name": e.name,
+                    "address": e.email,
+                } for e in get_experts(db, ranking_id)],
+                "ranking_method": get_ranking_method(db, ranking_id),
+                "aggregation_method": get_aggregation_method(db, ranking_id),
+                "completness_required": db.query(Variables).filter(Variables.ranking_id == ranking_id).first().completness_required,
+                "scale": [{
+                    "value": s.value,
+                    "description": s.description,
+                } for s in get_scales_by_ranking_id(db, ranking_id)],
+            },
+
+            "data": [{
+                "expertId": expert_map[e.expert_id],
+                "data_set":{
+                    "matrices": [{
+                        "criterion": c.criteria_id,
+                        "pcm": get_matrix_by_ranking_id_expert_id_criteria_id(db, ranking_id, e.expert_id, c.criteria_id, alternative_map).tolist(),
+                    } for c in get_criteria_by_ranking_id(db, ranking_id) ],
+                }
+            } for e in get_experts(db, ranking_id)],
+
+            "weights": [{
+                "criterion": c.criteria_id,
+                "w": get_weights_by_ranking_id_criteria_id(db, ranking_id, c.criteria_id, expert_map),
+            } for c in get_criteria_by_ranking_id(db, ranking_id)]
+        }
+    }
+    return return_value
 
 
 

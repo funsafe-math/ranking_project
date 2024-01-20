@@ -286,6 +286,10 @@ def trigger_ranking_algorithm(rankingId: int, db: Session = Depends(get_db)):
 def get_alternative_rank(rankingId: int, db: Session = Depends(get_db)):
     return crud.get_alternative_rank(db, rankingId)
 
+@app.get('/export_data/{rankingId}')
+def export_data(rankingId: int, db: Session = Depends(get_db)):
+    return crud.export_data(db, rankingId)
+
 
 
 
